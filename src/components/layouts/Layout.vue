@@ -15,15 +15,13 @@
               <i class="fa-solid fa-book"></i> Menajemen buku
             </li></RouterLink
           >
-          <RouterLink to="/mcategory"
-            ><li>
-              <i class="fa-solid fa-layer-group"></i> Menejemen kategory
-            </li></RouterLink
-          >
           <RouterLink to="/morder"
             ><li>
               <i class="fa-solid fa-truck-ramp-box"></i> Menejemen Pesanan
             </li></RouterLink
+          >
+          <RouterLink to="/inbox"
+            ><li><i class="fa-solid fa-inbox"></i> Inbox</li></RouterLink
           >
         </ul>
       </div>
@@ -47,11 +45,12 @@
 }
 
 .sidebar li {
+  color: var(--color);
   padding: 1rem;
 }
 
 .sidebar li:hover {
-  background-color: #607274;
+  background-color: #adadad;
   color: #fff;
   transition: 0.5s;
 }

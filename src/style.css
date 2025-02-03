@@ -16,6 +16,7 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --sidebar-color: #ccd3ca;
+  --color: #27445d;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from "vue";
+import { useToast } from "primevue/usetoast";
 
+const toast = useToast();
 const src = ref(null);
 
 function onFileSelect(event) {
@@ -16,7 +18,7 @@ function onFileSelect(event) {
 
 const items = ref([
   {
-    label: "Category",
+    label: "Genre",
     icon: "pi pi-objects-column",
     items: [
       {
@@ -25,6 +27,74 @@ const items = ref([
     ],
   },
 ]);
+
+const show = () => {
+  toast.add({
+    severity: "info",
+    summary: "Info",
+    detail: "Buku Berhasil di Tambahkan!",
+    life: 3000,
+  });
+};
+</script>
+
+<script>
+import axios from "axios";
+export default {
+  data() {
+    return {
+      model: {
+        dataBuku: {
+          title: "",
+          author: "",
+          price: "",
+          description: "",
+          category: null,
+          image: null,
+        },
+      },
+    };
+  },
+
+  methods: {
+    async saveBook() {
+      const formData = new FormData();
+      formData.append("title", this.model.dataBuku.title);
+      formData.append("author", this.model.dataBuku.author);
+      formData.append("price", this.model.dataBuku.price);
+      formData.append("description", this.model.dataBuku.description);
+      formData.append("category", this.model.dataBuku.category);
+      if (this.model.dataBuku.image) {
+        formData.append("image", this.model.dataBuku.image);
+      }
+
+      try {
+        const response = await axios.post(
+          "http://127.0.0.1:8000/api/books",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        this.model.dataBuku = {
+          title: "",
+          author: "",
+          price: "",
+          description: "",
+          category: null,
+          image: null,
+        };
+
+        this.show(); // Tampilkan notifikasi berhasil
+      } catch (error) {
+        console.error("Tidak Bisa menambahkan Buku!:", error);
+      }
+    },
+  },
+};
 </script>
 
 <template>
@@ -48,15 +118,20 @@ const items = ref([
               customUpload
               auto
               severity="secondary"
-              class="p-button-outlined flex"
+              class="p-button-outlined flex p-8"
             />
           </div>
         </div>
         <div class="md:w-1/2">
-          <form class="space-y-4">
+          <form
+            class="space-y-4"
+            @submit.prevent="saveBook"
+            enctype="multipart/form-data"
+          >
             <div class="relative">
               <input
-                placeholder="Book Name"
+                placeholder="Nama Buku"
+                v-model="model.dataBuku.title"
                 type="text"
                 class="w-full p-3 bg-gray-300 text-black rounded-lg focus:outline-none"
               />
@@ -64,7 +139,8 @@ const items = ref([
 
             <div class="relative">
               <input
-                placeholder="Author"
+                placeholder="Penulis"
+                v-model="model.dataBuku.author"
                 type="text"
                 class="w-full p-3 bg-gray-300 text-black rounded-lg focus:outline-none"
               />
@@ -72,7 +148,8 @@ const items = ref([
 
             <div class="relative">
               <input
-                placeholder="Price"
+                placeholder="Harga"
+                v-model="model.dataBuku.price"
                 type="text"
                 class="w-full p-3 bg-gray-300 rounded-lg text-black focus:outline-none"
               />
@@ -80,18 +157,53 @@ const items = ref([
 
             <div class="relative">
               <textarea
-                placeholder="Description"
+                placeholder="Sinopsis"
+                v-model="model.dataBuku.description"
                 class="w-full p-3 bg-gray-300 rounded-lg text-black focus:outline-none"
               ></textarea>
             </div>
 
-            <Menubar :model="items" class="category w-40" />
-
-            <!-- <div class="card">
-              <Menubar :model="items" class="category w-40" />
-            </div> -->
+            <div class="flex">
+              <Menubar :model="items" class="category w-40 text-sky-800" />
+              <div class="flex justify-end m-3">
+                <Toast />
+                <Button
+                  type="submit"
+                  label="Simpan"
+                  @click="show()"
+                  class="bg-amber-300 border-none text-white"
+                />
+              </div>
+            </div>
           </form>
         </div>
+      </div>
+    </template>
+  </Card>
+
+  <!-- Card Tambah Kategori -->
+  <Card class="m-9">
+    <template #title>Tambah Kategori</template>
+    <template #content>
+      <div class="flex flex-col">
+        <form class="space-y-4" @submit.prevent="saveKategori">
+          <div class="relative">
+            <input
+              placeholder="Tambah Kategori Buku"
+              type="text"
+              class="w-full p-3 bg-gray-300 rounded-lg text-black focus:outline-none"
+            />
+          </div>
+          <div class="flex justify-end m-3">
+            <Toast />
+            <Button
+              type="submit"
+              label="Simpan"
+              @click="show()"
+              class="bg-amber-300 border-none text-white"
+            />
+          </div>
+        </form>
       </div>
     </template>
   </Card>
@@ -103,46 +215,3 @@ const items = ref([
   background-color: #ccd3ca;
 }
 </style>
-
-<!-- <html lang="en">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>
-   Tambah Buku
-  </title>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
- </head>
- <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-4xl">
-   <h1 class="text-2xl font-semibold mb-6">
-    Tambah Buku
-   </h1>
-   <div class="flex flex-col md:flex-row items-start md:items-center">
-    <div class="mb-6 md:mb-0 md:mr-6">
-     <img alt="A decorative street lamp with a hanging plant and a modern building in the background" class="w-64 h-80 object-cover rounded-lg shadow-md" height="400" src="https://storage.googleapis.com/a1aa/image/zXPXJHroAx4dGNmTL4oYhQcgbOBM54FkwoGO4R4AaX1OSJCF.jpg" width="300"/>
-     <button class="mt-4 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200">
-      <i class="fas fa-plus">
-      </i>
-      Choose
-     </button>
-    </div>
-    <div class="flex-1">
-     <input class="w-full mb-4 p-3 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" placeholder="Book Name" type="text"/>
-     <input class="w-full mb-4 p-3 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" placeholder="Author" type="text"/>
-     <input class="w-full mb-4 p-3 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" placeholder="Price" type="text"/>
-     <textarea class="w-full mb-4 p-3 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 h-32" placeholder="Description"></textarea>
-     <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
-      <i class="fas fa-qrcode">
-      </i>
-      Category
-      <i class="fas fa-caret-down">
-      </i>
-     </button>
-    </div>
-   </div>
-  </div>
- </body>
-</html> -->

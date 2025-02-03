@@ -5,6 +5,7 @@ import { router } from './views/router';
 import PrimeVue from 'primevue/config';
 import '@fontsource/ubuntu';
 import 'primeicons/primeicons.css'
+import ToastService from 'primevue/toastservice';
 
 
 const app = createApp(App);
@@ -14,3 +15,4 @@ app.use(PrimeVue, {
 });
 app.use(router);
 app.mount('#app');
+app.use(ToastService);

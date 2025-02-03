@@ -1,8 +1,7 @@
 <template>
   <div class="flex">
-    <i class="fa-solid fa-bars"></i>
     <img src="../../assets/Logo.png" alt="Logo" />
-    <div class="">
+    <div class="flex">
       <InputGroup>
         <InputText placeholder="Keyword" />
         <InputGroupAddon>
@@ -16,8 +15,10 @@
       </InputGroup>
       <Menu ref="menu" :model="items" popup class="!min-w-fit" />
 
-      <i class="fa-regular fa-heart"></i>
-      <i class="fa-regular fa-user"></i>
+      <div class="">
+        <i class="fa-regular fa-heart"></i>
+        <i class="fa-regular fa-user"></i>
+      </div>
     </div>
   </div>
 </template>
