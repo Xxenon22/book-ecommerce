@@ -7,15 +7,15 @@
 
       <div class="flex flex-col justify-between">
         <ul class="flex flex-col">
-          <RouterLink to="/admin"
+          <RouterLink to="/dashboard"
             ><li><i class="fa-solid fa-gauge"></i> Dashboard</li></RouterLink
           >
-          <RouterLink to="/mbooks"
+          <RouterLink to="/tambah-buku"
             ><li>
               <i class="fa-solid fa-book"></i> Menajemen buku
             </li></RouterLink
           >
-          <RouterLink to="/morder"
+          <RouterLink to="/order"
             ><li>
               <i class="fa-solid fa-truck-ramp-box"></i> Menejemen Pesanan
             </li></RouterLink

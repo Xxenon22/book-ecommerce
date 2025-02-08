@@ -1,1 +1,1 @@
-<template>ini home admin</template>
+<template>Dashboard ADMIN</template>
