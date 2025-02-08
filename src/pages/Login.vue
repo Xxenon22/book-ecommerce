@@ -1,4 +1,4 @@
-<script>
+<!-- <script>
 import axios from "axios";
 export default {
   data() {
@@ -42,7 +42,7 @@ export default {
     },
   },
 };
-</script>
+</script> -->
 
 <template>
   <div class="bg-cream flex items-center justify-center min-h-screen">

@@ -1,7 +1,3 @@
-<script setup>
-import Navbar from "./layouts/Navbar.vue";
-</script>
+<script setup></script>
 
-<template>
-  <Navbar></Navbar>
-</template>
+<template></template>
