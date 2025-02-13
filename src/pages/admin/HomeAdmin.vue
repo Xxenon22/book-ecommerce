@@ -1,1 +1,0 @@
-<template>Dashboard ADMIN</template>

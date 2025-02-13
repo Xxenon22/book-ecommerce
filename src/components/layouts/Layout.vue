@@ -1,57 +1,126 @@
-<template>
-  <div class="flex flex-row min-h-screen">
-    <aside class="sidebar text-black max-w-64">
-      <div class="logo flex items-center m-4">
-        <img src="../../assets/Logo.png" alt="Book store's logo" />
-      </div>
+<script setup>
+import { ref, onMounted } from "vue";
+import { supabase } from "../../supabase/index";
+import { formatCurrency } from "../../supabase/currency";
 
-      <div class="flex flex-col justify-between">
-        <ul class="flex flex-col">
-          <RouterLink to="/dashboard"
-            ><li><i class="fa-solid fa-gauge"></i> Dashboard</li></RouterLink
+const products = ref([]);
+const isLoading = ref(true);
+
+// fetch Produk
+const fetchProducts = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("books")
+      .select("title, author, price, image_url");
+    if (error) throw error;
+
+    products.value = data;
+  } catch (error) {
+    console.error("Gagal mengambil Produk! :", error);
+  }
+};
+
+const initialization = async () => {
+  try {
+    await fetchProducts();
+  } catch (error) {
+    console.error("Error during initialize! :", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(initialization);
+</script>
+
+<template>
+  <section class="header m-5">
+    <div class="flex justify-between">
+      <img src="/src/assets/Logo.png" alt="" />
+
+      <div class="search flex relative">
+        <InputText
+          placeholder="lagi cari buku apa..."
+          class="p-3 focus:outline-none font-bold"
+          style="border-radius: 10px 0 0 10px"
+        />
+        <Button icon="pi pi-search" style="border-radius: 0 10px 10px 0" />
+
+        <div class="ml-2 space-x-2">
+          <Button class="custom-button" icon="pi pi-heart" />
+          <Button class="custom-button" icon="pi pi-user" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="banner flex justify-center flex-col">
+    <div class="w-full p-20" style="margin-top: -70px">
+      <Card>
+        <template #content>
+          <Carousel
+            :value="products"
+            :numVisible="3"
+            :numScroll="1"
+            :responsiveOptions="responsiveOptions"
+            circular
+            :autoplayInterval="3000"
           >
-          <RouterLink to="/tambah-buku"
-            ><li>
-              <i class="fa-solid fa-book"></i> Menajemen buku
-            </li></RouterLink
-          >
-          <RouterLink to="/order"
-            ><li>
-              <i class="fa-solid fa-truck-ramp-box"></i> Menejemen Pesanan
-            </li></RouterLink
-          >
-          <RouterLink to="/inbox"
-            ><li><i class="fa-solid fa-inbox"></i> Inbox</li></RouterLink
-          >
+            <template #item="slotProps" class="h-64">
+              <div
+                class="border border-surface-200 dark:border-surface-700 rounded m-2 p-4"
+              >
+                <div class="mb-4">
+                  <div class="relative flex justify-center items-center">
+                    <img
+                      :src="slotProps.data.image_url"
+                      :alt="slotProps.data.title"
+                      class="h-60 object-cover"
+                    />
+                  </div>
+                </div>
+                <div class="mb-4 font-medium">
+                  <p class="text-surface-500">{{ slotProps.data.author }}</p>
+                  <h1 class="text-xl">{{ slotProps.data.title }}</h1>
+                </div>
+                <div class="flex justify-between items-center">
+                  <div class="mt-0 font-semibold text-xl">
+                    {{ formatCurrency(slotProps.data.price) }}
+                  </div>
+                  <span>
+                    <Button icon="pi pi-heart" severity="secondary" outlined />
+                    <Button icon="pi pi-shopping-cart" class="ml-2" />
+                  </span>
+                </div>
+              </div>
+            </template>
+          </Carousel>
+        </template>
+      </Card>
+
+      <div class="nav m-5">
+        <ul class="flex flex-row space-x-10 items-center">
+          <li>
+            <Select
+              v-model="selectedCity"
+              :options="cities"
+              optionLabel="name"
+              placeholder="Genre"
+              class="w-full md:w-56"
+            />
+          </li>
+          <RouterLink to="/"><li>Home</li></RouterLink>
+          <RouterLink to="/buku-baru"><li>Buku Baru</li></RouterLink>
         </ul>
       </div>
-    </aside>
+    </div>
+  </section>
 
-    <div class="flex-grow flex flex-col">
+  <section class="content">
+    <div class="flex flex-grow flex-col">
       <main class="flex-grow">
         <slot />
       </main>
     </div>
-  </div>
+  </section>
 </template>
-
-<style scoped>
-.sidebar {
-  width: 350px;
-  height: 100vh;
-  position: sticky;
-  top: 0;
-  background-color: var(--sidebar-color);
-}
-
-.sidebar li {
-  color: var(--color);
-  padding: 1rem;
-}
-
-.sidebar li:hover {
-  background-color: #adadad;
-  color: #fff;
-  transition: 0.5s;
-}
-</style>

@@ -10,6 +10,8 @@ const selectedCard = ref("home");
 const toast = useToast();
 const src = ref(null);
 const categoryName = ref("");
+const selectedFile = ref(null);
+const selectedBook = ref(null);
 const Book = ref({
   title: "",
   author: "",
@@ -17,6 +19,7 @@ const Book = ref({
   stok_buku: null,
   description: "",
   kategori_id: "",
+  image_url: "",
 });
 const categories = ref([]); // Menyimpan daftar kategori untuk dropdown
 
@@ -40,18 +43,82 @@ const items = ref([
 ]);
 
 // Handle pemilihan file
-function onFileSelect(event) {
-  const file = event.files[0];
-  const reader = new FileReader();
+// async function onFileSelect(event) {
+//   const file = event.files[0];
+//   if (!file) return;
 
-  reader.onload = async (e) => {
-    src.value = e.target.result;
-  };
+//   const fileExt = file.name.split(".").pop();
+//   const fileName = `${Date.now()}.${fileExt}`;
+//   const filePath = `books/${fileName}`;
 
-  reader.readAsDataURL(file);
-}
+//   try {
+//     // Upload file ke Supabase Storage
+//     const { data, error } = await supabase.storage
+//       .from("cover_images") // Pastikan nama bucket benar
+//       .upload(filePath, file);
+
+//     if (error) throw error;
+
+//     // Ambil public URL dari gambar yang telah diunggah
+//     const { data: publicUrlData } = supabase.storage
+//       .from("cover_images")
+//       .getPublicUrl(filePath);
+
+//     if (!publicUrlData.publicUrl)
+//       throw new Error("Gagal mendapatkan URL gambar");
+
+//     // Set URL ke dalam Book object
+//     Book.value.image_url = publicUrlData.publicUrl;
+//     src.value = publicUrlData.publicUrl;
+
+//     toast.add({
+//       severity: "success",
+//       summary: "Sukses",
+//       detail: "Gambar berhasil diunggah!",
+//     });
+//   } catch (error) {
+//     console.error("Upload gagal:", error);
+//     toast.add({
+//       severity: "error",
+//       summary: "Gagal",
+//       detail: "Gagal mengunggah gambar!",
+//     });
+//   }
+// }
 
 // Tambah Kategori
+
+function onFileSelect(event) {
+  const file = event.files[0];
+  if (!file) return;
+
+  selectedFile.value = file;
+  src.value = URL.createObjectURL(file); // Menampilkan pratinjau sebelum diupload
+}
+
+async function uploadNewImage() {
+  if (!selectedFile.value) return selectedBook.value.image_url;
+
+  const fileExt = selectedFile.value.name.split(".").pop();
+  const fileName = `${Date.now()}.${fileExt}`;
+  const filePath = `books/${fileName}`;
+
+  try {
+    const { data, error } = await supabase.storage
+      .from("cover_images")
+      .upload(filePath, selectedFile.value);
+
+    if (error) throw error;
+
+    const { data: publicUrlData } = supabase.storage
+      .from("cover_images")
+      .getPublicUrl(filePath);
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    console.error("Gagal mengunggah gambar:", error);
+  }
+}
+
 const insertCategory = async () => {
   try {
     const { error } = await supabase
@@ -78,26 +145,63 @@ const insertCategory = async () => {
 
 // Tambah buku
 const insertBook = async () => {
+  if (!src.value) {
+    toast.add({
+      severity: "warn",
+      summary: "Peringatan",
+      detail: "Silakan unggah gambar terlebih dahulu!",
+    });
+    return;
+  }
+  if (
+    !Book.value.title ||
+    !Book.value.author ||
+    !Book.value.price ||
+    !Book.value.kategori_id
+  ) {
+    toast.add({
+      severity: "warn",
+      summary: "Peringatan",
+      detail: "Semua field harus diisi!",
+    });
+    return;
+  }
+
   try {
+    const newImageUrl = await uploadNewImage(); // Upload gambar baru saat menyimpan perubahan
+
     const { error } = await supabase.from("books").insert([
       {
         ...Book.value,
+        image_url: newImageUrl, // Save image URL
         created_at: new Date().toISOString(),
       },
     ]);
     if (error) throw error;
+
     toast.add({
       severity: "success",
       summary: "Sukses",
-      detail: "Buku Berhasil di tambahkan!",
+      detail: "Buku Berhasil Ditambahkan!",
     });
-    Book.value = "";
+
+    // Reset form
+    Book.value = {
+      title: "",
+      author: "",
+      price: null,
+      stok_buku: null,
+      description: "",
+      kategori_id: "",
+      image_url: "",
+    };
+    src.value = null;
   } catch (error) {
-    console.log("error menambahkan kategori:", error);
+    console.log("Gagal menambahkan buku:", error);
     toast.add({
       severity: "error",
       summary: "Gagal",
-      detail: "Gagal menambahkan Buku !",
+      detail: "Gagal menambahkan Buku!",
     });
   }
 };
@@ -128,7 +232,12 @@ onMounted(() => {
 
 <template>
   <div class="m-5">
-    <h1 class="text-2xl">Menejemen Buku</h1>
+    <div class="flex justify-between">
+      <h1 class="text-2xl">Menejemen Buku</h1>
+      <RouterLink to="/">
+        <Button type="" label="Sign Out" icon="pi pi-sign-out"
+      /></RouterLink>
+    </div>
     <div class="card">
       <Menubar :model="items" />
     </div>
@@ -142,27 +251,27 @@ onMounted(() => {
             <h2 class="text-[var(--primary-color)]">Tambah Buku</h2>
           </template>
           <template #content>
-            <div class="flex flex-col md:flex-row items-center">
-              <div class="md:w-1/2 flex flex-col items-center">
-                <img
-                  v-if="src"
-                  :src="src"
-                  alt="Image"
-                  class="rounded-lg m-5"
-                  width="300"
-                />
-                <FileUpload
-                  mode="basic"
-                  @select="onFileSelect"
-                  customUpload
-                  auto
-                  severity="secondary"
-                  class="p-button-outlined"
-                />
-              </div>
+            <form @submit.prevent="insertBook">
+              <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2">
+                  <img
+                    v-if="src"
+                    :src="src"
+                    alt="Image"
+                    class="m-auto"
+                    width="250"
+                  />
+                  <FileUpload
+                    mode="basic"
+                    @select="onFileSelect"
+                    customUpload
+                    auto
+                    severity="secondary"
+                    class="p-button-outlined top-7"
+                  />
+                </div>
 
-              <div class="md:w-1/2">
-                <form @submit.prevent="insertBook" class="space-y-4">
+                <div class="md:w-1/2 space-y-4">
                   <Select
                     v-model="Book.kategori_id"
                     :options="categories"
@@ -221,9 +330,9 @@ onMounted(() => {
                   <div class="float-right">
                     <Button type="submit" label="Simpan" />
                   </div>
-                </form>
+                </div>
               </div>
-            </div>
+            </form>
           </template>
         </Card>
       </div>
