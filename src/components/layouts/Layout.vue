@@ -38,17 +38,19 @@ onMounted(initialization);
     <div class="flex justify-between">
       <img src="/src/assets/Logo.png" alt="" />
 
-      <div class="search flex relative">
-        <InputText
-          placeholder="lagi cari buku apa..."
-          class="p-3 focus:outline-none font-bold"
-          style="border-radius: 10px 0 0 10px"
-        />
-        <Button icon="pi pi-search" style="border-radius: 0 10px 10px 0" />
-
-        <div class="ml-2 space-x-2">
-          <Button class="custom-button" icon="pi pi-heart" />
-          <Button class="custom-button" icon="pi pi-user" />
+      <div class="flex relative">
+        <div class="flex-wrap space-x-4 flex flex-row mr-5">
+          <RouterLink to="/"
+            ><Avatar
+              icon="pi pi-user"
+              style="background-color: #ece9fc; color: #2a1261"
+              shape="circle"
+          /></RouterLink>
+          <RouterLink to="/suka">
+            <OverlayBadge value="2">
+              <i class="pi pi-heart" style="font-size: 2rem" />
+            </OverlayBadge>
+          </RouterLink>
         </div>
       </div>
     </div>
@@ -98,7 +100,7 @@ onMounted(initialization);
         </template>
       </Card>
 
-      <div class="nav m-5">
+      <div class="nav m-5 flex flex-row justify-between">
         <ul class="flex flex-row space-x-10 items-center">
           <li>
             <Select
@@ -110,8 +112,16 @@ onMounted(initialization);
             />
           </li>
           <RouterLink to="/"><li>Home</li></RouterLink>
-          <RouterLink to="/buku-baru"><li>Buku Baru</li></RouterLink>
+          <RouterLink to="/buku-terlaris"><li>Buku Terlaris</li></RouterLink>
         </ul>
+        <div class="flex flex-row">
+          <InputText
+            placeholder="lagi cari buku apa..."
+            class="p-3 focus:outline-none font-bold"
+            style="border-radius: 10px 0 0 10px"
+          />
+          <Button icon="pi pi-search" style="border-radius: 0 10px 10px 0" />
+        </div>
       </div>
     </div>
   </section>

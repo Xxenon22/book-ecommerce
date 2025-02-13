@@ -5,6 +5,7 @@ import { formatCurrency } from "../supabase/currency";
 import { Card } from "primevue";
 
 const Book = ref([]);
+const isLoading = ref(true);
 
 const fetchBook = async () => {
   try {
@@ -23,6 +24,8 @@ const initializeData = async () => {
     await fetchBook();
   } catch (error) {
     console.error("Error during initialization:", error.message);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -30,32 +33,47 @@ onMounted(initializeData);
 </script>
 
 <template>
-  <div class="content m-auto">
-    <Card style="width: 25rem; overflow: hidden">
-      <template #header>
-        <div class="relative flex justify-center items-center">
-          <img src="" alt="" />
-        </div>
-      </template>
+  <section class="flex flex-col m-4">
+    <div
+      class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+    >
+      <Card
+        v-for="fetchBook in Book"
+        style="width: 17rem; overflow: hidden"
+        class="book flex flex-col"
+      >
+        <template #header>
+          <div class="relative flex justify-center items-center">
+            <img
+              :src="fetchBook.image_url"
+              :alt="fetchBook.title"
+              width="150"
+              class="m-5"
+            />
+          </div>
+        </template>
 
-      <template #title>
-        <div class="flex flex-row justify-between">
-          <p>title</p>
-          <span>Genre</span>
-        </div>
-      </template>
-      <template #subtitle>Nama Penulis</template>
-      <template #content>
-        <div class="flex flex-row justify-between">
-          <p class="text-2xl">Rp. Price</p>
-          <span class="space-x-2">
-            <RouterLink to="/"><Button icon="pi pi-heart" /></RouterLink>
-            <RouterLink to="/"
-              ><Button icon="pi pi-shopping-cart"
-            /></RouterLink>
+        <template #title>
+          <span class="float-right">
+            <Tag value="Primary">{{ fetchBook.kategori_id.name }}</Tag>
           </span>
-        </div>
-      </template>
-    </Card>
-  </div>
+          <p class="text-lg">{{ fetchBook.title }}</p>
+        </template>
+        <template #subtitle
+          ><p class="text-sm">{{ fetchBook.author }}</p></template
+        >
+        <template #footer>
+          <div class="flex flex-row justify-between text-sm mt-10">
+            <p class="text-lg">{{ formatCurrency(fetchBook.price) }}</p>
+            <span class="space-x-2" style="size: 15px">
+              <RouterLink to="/"><Button icon="pi pi-heart" /></RouterLink>
+              <RouterLink to="/"
+                ><Button icon="pi pi-shopping-cart"
+              /></RouterLink>
+            </span>
+          </div>
+        </template>
+      </Card>
+    </div>
+  </section>
 </template>
