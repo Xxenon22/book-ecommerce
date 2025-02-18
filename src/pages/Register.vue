@@ -1,55 +1,68 @@
-<!-- <script>
-import axios from "axios";
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { supabase } from "../supabase/index";
+import { Toast, useToast } from "primevue";
 
-export default {
-  data() {
-    return {
-      name: "",
-      email: "",
-      password: "",
-      password_confirmation: "",
-      message: "",
-      isError: false,
-    };
-  },
+const toast = useToast();
+const email = ref("");
+const password = ref("");
+const displayName = ref("");
+const errorMessage = ref("");
+const router = useRouter();
 
-  methods: {
-    async register() {
-      try {
-        const response = await axios.post(
-          "http://127.0.0.1:8000/api/register",
-          {
-            name: this.name,
-            email: this.email,
-            password: this.password,
-            password_confirmation: this.password_confirmation,
-          }
-        );
-
-        this.message = response.data.message;
-
-        // Redirect ke dashboard setelah registrasi berhasil
-        const redirectPath = response.data.redirect_to;
-        this.$router.push(redirectPath);
-      } catch (error) {
-        this.isError = true;
-
-        // Menampilkan pesan error validasi
-        if (error.response?.status === 422) {
-          this.message =
-            error.response.data.errors?.email?.[0] ||
-            error.response.data.message ||
-            "Validation error occurred.";
-        } else {
-          this.message =
-            error.response?.data?.message ||
-            "An error occurred during registration.";
-        }
+const register = async () => {
+  try {
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
+      {
+        email: email.value,
+        password: password.value,
+        options: {
+          data: {
+            display_name: displayName.value,
+          },
+        },
       }
-    },
-  },
+    );
+
+    if (signUpError) {
+      errorMessage.value = signUpError.message;
+      return;
+    }
+
+    const { error: insertError } = await supabase.from("user").insert([
+      {
+        user_id: signUpData.user.id,
+        name: displayName.value,
+        email: email.value,
+        role_id: 1,
+      },
+    ]);
+
+    if (insertError) {
+      errorMessage.value = insertError.message;
+      toast.add({
+        severity: "error",
+        summary: "Peringatan",
+        detail: "User  gagal ditambahkan!",
+        life: 5000,
+      });
+      return;
+    }
+
+    toast.add({
+      severity: "success",
+      summary: "Berhasil",
+      detail: "User  berhasil ditambahkan",
+      life: 5000,
+    });
+    alert("Akun sudah terdaftar, silahkan check inbox email mu!");
+  } catch (err) {
+    errorMessage.value = "An unexpected error occurred. Please try again.";
+    console.error(err);
+  }
 };
-</script> -->
+</script>
 
 <template>
   <body class="bg-cream flex items-center justify-center min-h-screen">
@@ -66,19 +79,7 @@ export default {
         <form @submit.prevent="register" class="space-y-4">
           <div class="relative">
             <input
-              v-model="email"
-              class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none"
-              placeholder="Email..."
-              type="email"
-            />
-            <i
-              class="fa-solid fa-envelope absolute right-3 top-3 text-gray-400"
-            ></i>
-          </div>
-
-          <div class="relative">
-            <input
-              v-model="name"
+              v-model="displayName"
               class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none"
               placeholder="Username..."
               type="text"
@@ -90,31 +91,36 @@ export default {
 
           <div class="relative">
             <input
-              v-model="password"
+              v-model="email"
               class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none"
-              placeholder="Password..."
-              type="password"
+              placeholder="Email..."
+              type="email"
             />
             <i
-              class="fa-solid fa-lock absolute right-3 top-3 text-gray-400"
+              class="fa-solid fa-envelope absolute right-3 top-3 text-gray-400"
             ></i>
           </div>
 
-          <input
-            id="password_confirmation"
-            v-model="password_confirmation"
-            type="password"
-            class="bg-gray-100 border border-gray-300 rounded-lg w-full p-2 focus:outline-none"
-            placeholder="Confirm Password..."
-            required
-          />
-
-          <button
+          <div class="relative">
+            <Password
+              id="password"
+              v-model="password"
+              class="p-password w-full focus:outline-none"
+              placeholder="Password..."
+              toggleMask
+            />
+          </div>
+          <div
+            v-if="errorMessage"
+            class="text-red-600 text-center mt-2 bg-slate-900"
+          >
+            {{ errorMessage }}
+          </div>
+          <Button
+            label="Sign Up"
             type="submit"
             class="w-full p-3 bg-orange-400 text-white rounded-lg font-semibold"
-          >
-            Sign up
-          </button>
+          />
         </form>
 
         <p v-if="message" class="mt-4 text-red-500">{{ message }}</p>
@@ -137,5 +143,21 @@ export default {
         />
       </div>
     </div>
+    <Toast />
   </body>
 </template>
+
+<style>
+.p-password {
+  width: 100% !important;
+}
+
+.p-password input {
+  width: 100% !important;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #000;
+}
+</style>

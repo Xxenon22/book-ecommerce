@@ -1,48 +1,15 @@
-<!-- <script>
-import axios from "axios";
-export default {
-  data() {
-    return {
-      email: "",
-      password: "",
-      message: "",
-      isError: false,
-    };
-  },
+<script setup>
+import { supabase } from "../supabase/index";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { Toast, useToast } from "primevue";
 
-  methods: {
-    async login() {
-      try {
-        const response = await axios.post("http://127.0.0.1:8000/api/login", {
-          email: this.email,
-          password: this.password,
-        });
-
-        // Simpan pesan dari API
-        this.message = response.data.message;
-
-        // Validasi redirect path
-        const redirectPath = response.data.redirect_to;
-        if (!redirectPath) {
-          throw new Error("Redirect path is missing in API response");
-        }
-
-        // Simpan token & role di localStorage jika diperlukan
-        localStorage.setItem("role", response.data.role);
-        localStorage.setItem("token", response.data.token);
-
-        // Redirect user ke path sesuai role
-        this.$router.push(redirectPath);
-      } catch (error) {
-        // Tangkap error dan tampilkan pesan
-        console.error(error); // Log error untuk debugging
-        this.isError = true;
-        this.message = error.response?.data?.message || "An error occurred";
-      }
-    },
-  },
-};
-</script> -->
+const email = ref("");
+const password = ref("");
+const errorMessage = ref("");
+const router = useRouter();
+const toast = useToast(); // Initialize toast
+</script>
 
 <template>
   <div class="bg-cream flex items-center justify-center min-h-screen">
@@ -68,25 +35,28 @@ export default {
         </div>
 
         <div class="relative">
-          <input
+          <Password
             id="password"
             v-model="password"
-            class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none"
+            class="w-full"
             placeholder="Password..."
-            type="password"
-            required
+            toggleMask
           />
-          <i class="fa-solid fa-lock absolute right-3 top-3 text-gray-400"></i>
         </div>
 
-        <button
-          type="submit"
-          class="w-32 p-3 bg-orange-400 text-white font-semibold rounded-lg"
+        <div class="flex justify-center">
+          <button
+            type="submit"
+            class="w-32 p-3 bg-orange-400 text-white font-semibold rounded-lg"
+          >
+            Login
+          </button>
+        </div>
+        <p
+          v-if="errorMessage"
+          :class="isError ? 'text-red-600' : 'text-green-600'"
         >
-          Login
-        </button>
-        <p v-if="message" :class="isError ? 'text-red-600' : 'text-green-600'">
-          {{ message }}
+          {{ errorMessage }}
         </p>
       </form>
       <p class="mt-4 text-center">

@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { supabase } from "../../../supabase/index";
 import { formatCurrency } from "../../../supabase/currency";
-import { useToast } from "primevue";
+import { InputText, useToast } from "primevue";
 
 const Book = ref([]);
 const isLoading = ref(true);
@@ -71,6 +71,11 @@ const updateBook = async () => {
         author: selectedBook.value.author,
         price: selectedBook.value.price,
         stok_buku: selectedBook.value.stok_buku,
+        penerbit: selectedBook.value.penerbit,
+        bahasa: selectedBook.value.bahasa,
+        halaman: selectedBook.value.halaman,
+        lebar_buku: selectedBook.value.lebar_buku,
+        panjang_buku: selectedBook.value.panjang_buku,
         image_url: newImageUrl, // Update URL gambar baru
         created_at: new Date().toISOString(),
       })
@@ -153,7 +158,7 @@ const fetchBookById = async (bookId) => {
     const { data, error } = await supabase
       .from("books")
       .select(
-        "id, title, author, price, stok_buku, kategori_id (name), image_url"
+        "id, title, author, price, stok_buku, kategori_id (name), image_url, penerbit, bahasa, halaman, lebar_buku, panjang_buku"
       )
       .eq("id", bookId)
       .single();
@@ -272,6 +277,52 @@ onMounted(initializeData);
               v-model="selectedBook.stok_buku"
               id="stok_buku"
               class="w-full mb-2"
+            />
+
+            <label for="penerbit">Penerbit</label>
+            <InputText
+              v-model="selectedBook.penerbit"
+              id="penerbit"
+              class="w-full mb-2"
+            />
+
+            <label for="bahasa">Bahasa</label>
+            <InputText
+              v-model="selectedBook.bahasa"
+              id="bahasa"
+              class="w-full mb-2"
+            />
+
+            <label for="halaman">Halaman</label>
+            <InputNumber
+              v-model="selectedBook.halaman"
+              :min="1"
+              :max="1000"
+              id="halaman"
+              class="w-full mb-2"
+              fluid
+            />
+
+            <label for="lebar_buku">Lebar Buku</label>
+            <InputNumber
+              v-model="selectedBook.lebar_buku"
+              :min="1"
+              :max="200"
+              id="lebar_buku"
+              suffix=" cm"
+              class="w-full mb-2"
+              fluid
+            />
+
+            <label for="panjang_buku">Panjang Buku</label>
+            <InputNumber
+              v-model="selectedBook.panjang_buku"
+              :min="1"
+              :max="200"
+              id="panjang_buku"
+              suffix=" cm"
+              class="w-full mb-2"
+              fluid
             />
           </div>
         </div>

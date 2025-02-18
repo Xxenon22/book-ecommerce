@@ -20,7 +20,13 @@ const Book = ref({
   description: "",
   kategori_id: "",
   image_url: "",
+  penerbit: "",
+  bahasa: "",
+  halaman: null,
+  lebar_buku: null,
+  panjang_buku: null,
 });
+
 const categories = ref([]); // Menyimpan daftar kategori untuk dropdown
 
 // Navbar
@@ -41,52 +47,6 @@ const items = ref([
     command: () => (selectedCard.value = "listKategori"),
   },
 ]);
-
-// Handle pemilihan file
-// async function onFileSelect(event) {
-//   const file = event.files[0];
-//   if (!file) return;
-
-//   const fileExt = file.name.split(".").pop();
-//   const fileName = `${Date.now()}.${fileExt}`;
-//   const filePath = `books/${fileName}`;
-
-//   try {
-//     // Upload file ke Supabase Storage
-//     const { data, error } = await supabase.storage
-//       .from("cover_images") // Pastikan nama bucket benar
-//       .upload(filePath, file);
-
-//     if (error) throw error;
-
-//     // Ambil public URL dari gambar yang telah diunggah
-//     const { data: publicUrlData } = supabase.storage
-//       .from("cover_images")
-//       .getPublicUrl(filePath);
-
-//     if (!publicUrlData.publicUrl)
-//       throw new Error("Gagal mendapatkan URL gambar");
-
-//     // Set URL ke dalam Book object
-//     Book.value.image_url = publicUrlData.publicUrl;
-//     src.value = publicUrlData.publicUrl;
-
-//     toast.add({
-//       severity: "success",
-//       summary: "Sukses",
-//       detail: "Gambar berhasil diunggah!",
-//     });
-//   } catch (error) {
-//     console.error("Upload gagal:", error);
-//     toast.add({
-//       severity: "error",
-//       summary: "Gagal",
-//       detail: "Gagal mengunggah gambar!",
-//     });
-//   }
-// }
-
-// Tambah Kategori
 
 function onFileSelect(event) {
   const file = event.files[0];
@@ -119,6 +79,7 @@ async function uploadNewImage() {
   }
 }
 
+// Tambah Kategori
 const insertCategory = async () => {
   try {
     const { error } = await supabase
@@ -143,6 +104,36 @@ const insertCategory = async () => {
   }
 };
 
+// // Tambah detail Buku
+// const insertBookDetail = async () => {
+//   try {
+//     const { error } = await supabase.from("detail_buku").insert([
+//       {
+//         penerbit: detail_Buku.value,
+//         bahasa: detail_Buku.value,
+//         halaman: detail_Buku.value,
+//         lebar_buku: detail_Buku.value,
+//         panjang_buku: detail_Buku.value,
+//         created_at: new Date().toISOString(),
+//       },
+//     ]);
+//     if (error) throw error;
+//     // toast.add({
+//     //   severity: "success",
+//     //   summary: "Sukses",
+//     //   detail: "Kategori Berhasil di tambahkan!",
+//     // });
+//     detail_Buku.value = "";
+//   } catch (error) {
+//     console.log("error menambahkan Detail Buku:", error);
+//     toast.add({
+//       severity: "error",
+//       summary: "Gagal",
+//       detail: "Gagal menambahkan Detail Buku!",
+//     });
+//   }
+// };
+
 // Tambah buku
 const insertBook = async () => {
   if (!src.value) {
@@ -157,7 +148,12 @@ const insertBook = async () => {
     !Book.value.title ||
     !Book.value.author ||
     !Book.value.price ||
-    !Book.value.kategori_id
+    !Book.value.kategori_id ||
+    !Book.value.penerbit ||
+    !Book.value.bahasa ||
+    !Book.value.halaman ||
+    !Book.value.lebar_buku ||
+    !Book.value.panjang_buku
   ) {
     toast.add({
       severity: "warn",
@@ -194,6 +190,11 @@ const insertBook = async () => {
       description: "",
       kategori_id: "",
       image_url: "",
+      penerbit: "",
+      bahasa: "",
+      halaman: null,
+      lebar_buku: null,
+      panjang_buku: null,
     };
     src.value = null;
   } catch (error) {
@@ -245,6 +246,7 @@ onMounted(() => {
 
   <div class="m-5">
     <div v-if="selectedCard === 'home'" class="">
+      <!-- FIELD TAMBAH BUKU -->
       <div class="m-5">
         <Card>
           <template #title>
@@ -327,6 +329,62 @@ onMounted(() => {
                     />
                     <label for="on_label">Sinopsis</label>
                   </FloatLabel>
+                  <!-- FIELD TAMBAH DETAIL -->
+                  <FloatLabel variant="on">
+                    <InputText
+                      v-model="Book.penerbit"
+                      class="w-full"
+                      id="on_label"
+                    />
+                    <label for="on_label">Penerbit</label>
+                  </FloatLabel>
+
+                  <FloatLabel variant="on">
+                    <InputText
+                      v-model="Book.bahasa"
+                      class="w-full"
+                      id="on_label"
+                    />
+                    <label for="on_label">Bahasa</label>
+                  </FloatLabel>
+
+                  <FloatLabel variant="on">
+                    <InputNumber
+                      v-model="Book.halaman"
+                      class="w-full"
+                      mode="decimal"
+                      :min="1"
+                      :max="5000"
+                      fluid
+                    />
+                    <label for="on_label">Halaman</label>
+                  </FloatLabel>
+
+                  <FloatLabel variant="on">
+                    <InputNumber
+                      v-model="Book.lebar_buku"
+                      class="w-full"
+                      :min="1"
+                      :max="200"
+                      suffix=" cm"
+                      fluid
+                    />
+                    <label for="on_label">Lebar Buku</label>
+                  </FloatLabel>
+
+                  <FloatLabel variant="on">
+                    <InputNumber
+                      v-model="Book.panjang_buku"
+                      class="w-full"
+                      mode="decimal"
+                      :min="1"
+                      :max="200"
+                      suffix=" cm"
+                      fluid
+                    />
+                    <label for="on_label">Panjang Buku</label>
+                  </FloatLabel>
+
                   <div class="float-right">
                     <Button type="submit" label="Simpan" />
                   </div>
@@ -337,6 +395,7 @@ onMounted(() => {
         </Card>
       </div>
 
+      <!-- FIELD TAMBAH KATEGORI -->
       <div class="m-5">
         <Card>
           <template #title>

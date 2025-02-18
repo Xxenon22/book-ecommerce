@@ -19,6 +19,7 @@
   --components-primary: #df9755;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --card-bg: #adadad;
 }
 
 a {
