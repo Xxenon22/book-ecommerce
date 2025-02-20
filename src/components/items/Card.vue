@@ -102,7 +102,7 @@ onMounted(() => {
         v-for="book in bookList"
         :key="book.title"
         style="width: 17rem; overflow: hidden"
-        class="book flex flex-col"
+        class="Card book flex flex-col bg-[var(--bg-primary)]"
       >
         <template #header>
           <div class="relative flex justify-center items-center">
@@ -117,16 +117,16 @@ onMounted(() => {
 
         <template #title>
           <span class="float-right">
-            <Tag value="Primary">{{ book.kategori_id.name }}</Tag>
+            <Tag severity="warn">{{ book.kategori_id.name }}</Tag>
           </span>
-          <p class="text-lg">{{ book.title }}</p>
+          <p class="text-lg text-black">{{ book.title }}</p>
         </template>
         <template #subtitle
           ><p class="text-sm">{{ book.author }}</p></template
         >
         <template #footer>
           <div class="flex flex-row justify-between text-sm mt-10">
-            <p class="text-lg">{{ formatCurrency(book.price) }}</p>
+            <p class="text-lg text-black">{{ formatCurrency(book.price) }}</p>
             <span class="space-x-2" style="size: 15px">
               <Button
                 :icon="
@@ -135,7 +135,7 @@ onMounted(() => {
                     : 'pi pi-heart'
                 "
                 @click="addToCart(book)"
-                class="p-button-rounded p-button-text"
+                class="custom-button-icon p-button-rounded p-button-text"
               />
               <RouterLink :to="{ name: 'DetailBuku', params: { id: book.id } }">
                 <Button icon="pi pi-shopping-cart" />

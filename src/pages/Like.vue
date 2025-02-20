@@ -11,13 +11,6 @@ const checkedAll = ref(false); // Untuk memilih semua item
 const checkedItems = ref([]); // Untuk menyimpan item yang dipilih
 const toast = useToast();
 const router = useRouter();
-const selectedBooks = ref([]);
-
-// onMounted(() => {
-//   if (route.query.items) {
-//     selectedBooks.value = JSON.parse(route.query.items);
-//   }
-// });
 
 // Ambil cart dari Supabase
 const loadCart = async () => {
@@ -34,17 +27,17 @@ const loadCart = async () => {
 };
 
 // Hitung total harga dari buku yang dipilih
-const calculateTotalHarga = computed(() => {
-  return cart.value
-    .filter((book) => checkedItems.value.includes(book.id)) // Filter hanya buku yang dipilih
-    .reduce((sum, book) => sum + book.price * book.quantity, 0);
-});
+// const calculateTotalHarga = computed(() => {
+//   return cart.value
+//     .filter((book) => checkedItems.value.includes(book.id)) // Filter hanya buku yang dipilih
+//     .reduce((sum, book) => sum + book.price * book.quantity, 0);
+// });
 
-// Hitung total keseluruhan dengan ongkir
-const calculateTotal = computed(() => {
-  const ongkir = 10000;
-  return calculateTotalHarga.value + ongkir;
-});
+// // Hitung total keseluruhan dengan ongkir
+// const calculateTotal = computed(() => {
+//   const ongkir = 10000;
+//   return calculateTotalHarga.value + ongkir;
+// });
 
 // Pilih/Deselect Semua Item
 const toggleSelectAll = () => {
@@ -194,153 +187,120 @@ const checkoutSelected = () => {
       <p>Belum Ada yang disukai !</p>
     </div>
 
-    <div v-else class="space-y-6">
-      <div class="">
-        <Card>
+    <div v-else class="">
+      <div class="space-y-5">
+        <Card class="bg-[var(--primary-color)]">
           <template #content>
             <div class="flex flex-row justify-between">
-              <div class="flex flex-row">
+              <div class="flex flex-row items-center">
                 <Checkbox
                   v-model="checkedAll"
                   @change="toggleSelectAll"
                   binary
-                  variant="filled"
                   class="mr-5"
                 />
                 <h1 class="text-base">Semua</h1>
               </div>
               <div class="wrap">
                 <span>
-                  <i class="fas fa-trash-alt mr-1"> </i>
-                  <button @click="removeAllItems()" class="text-gray-500">
-                    Delete
-                  </button>
+                  <i class="fas fa-trash-alt"> </i>
+                  <button @click="removeAllItems()">Delete</button>
                 </span>
               </div>
             </div>
           </template>
         </Card>
 
-        <div
-          v-for="book in cart"
-          :key="book.id"
-          class="flex justify-between items-center border-b pb-4 m-5"
-        >
-          <div class="flex items-center">
-            <Checkbox v-model="checkedItems" :value="book.id" class="mr-5" />
-            <img
-              :alt="book.title"
-              class="bg-gray-200 rounded-md"
-              :src="book.image_url"
-              width="100"
-            />
-            <div class="ml-4">
-              <h3 class="text-xl font-bold">{{ book.title }}</h3>
-              <p class="text-sm text-gray-500">
-                {{ book.kategori_id }} |
-                <span class="text-orange-400"> {{ book.author }} </span>
-              </p>
+        <Card class="bg-[var(--bg-primary)]">
+          <template #content>
+            <div
+              v-for="book in cart"
+              :key="book.id"
+              class="flex justify-between items-center border-b pb-4 m-5"
+            >
+              <div class="flex items-center">
+                <Checkbox
+                  v-model="checkedItems"
+                  :value="book.id"
+                  class="mr-5"
+                />
+                <img
+                  :alt="book.title"
+                  class="bg-gray-200 rounded-md"
+                  :src="book.image_url"
+                  width="100"
+                />
+                <div class="ml-4">
+                  <h3 class="text-xl font-bold text-black">{{ book.title }}</h3>
+                  <p class="text-sm text-gray-500">
+                    {{ book.kategori_id }} |
+                    <span class="text-orange-400"> {{ book.author }} </span>
+                  </p>
 
-              <div class="mb-5">
-                <p class="text-gray-500">Rp.</p>
-                <h1 class="text-3xl font-bold ml-7" mode="decimal">
-                  {{ inputCurrency(book.price) }}
-                </h1>
+                  <div class="mb-5">
+                    <p class="text-gray-500">Rp.</p>
+                    <h1
+                      class="text-3xl font-bold ml-7 text-black"
+                      mode="decimal"
+                    >
+                      {{ inputCurrency(book.price) }}
+                    </h1>
+                  </div>
+                  <div class="flex items-center mt-2 gap-5">
+                    <Button
+                      icon="pi pi-minus"
+                      severity="success"
+                      rounded
+                      variant="outlined"
+                      @click="
+                        book.quantity > 1
+                          ? updateQuantity(book, book.quantity - 1)
+                          : null
+                      "
+                    />
+                    <span class="text-black">{{ book.quantity }}</span>
+                    <Button
+                      icon="pi pi-plus"
+                      severity="success"
+                      rounded
+                      variant="outlined"
+                      @click="updateQuantity(book, book.quantity + 1)"
+                    />
+                  </div>
+                </div>
               </div>
-              <div class="flex items-center mt-2">
-                <button
-                  class="px-2 py-1 border border-gray-300 rounded-l-md"
-                  @click="
-                    book.quantity > 1
-                      ? updateQuantity(book, book.quantity - 1)
-                      : null
-                  "
-                >
-                  -
-                </button>
-                <span class="px-4 py-1 border-t border-b border-gray-300">{{
-                  book.quantity
-                }}</span>
-                <button
-                  class="px-2 py-1 border border-gray-300 rounded-r-md"
-                  @click="updateQuantity(book, book.quantity + 1)"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="text-right">
-            <div class="">
-              <span class="font-black text-lg">Total : </span>
-              <span class="text-gray-500">Rp.</span>
-              <span class="text-4xl ml-5 font-extrabold">
-                {{ inputCurrency(book.price * book.quantity) }}
-              </span>
-            </div>
+              <div class="text-right">
+                <div class="">
+                  <span class="font-black text-lg text-black">Total : </span>
+                  <span class="text-gray-500">Rp.</span>
+                  <span class="text-4xl ml-5 font-extrabold text-black">
+                    {{ inputCurrency(book.price * book.quantity) }}
+                  </span>
+                </div>
 
-            <!-- ACTION -->
-            <div class="wrap mt-3">
-              <span>
-                <i class="fas fa-shopping-cart mr-1"> </i>
-                <RouterLink :to="{ name: 'Checkout', params: { id: book.id } }"
-                  ><button class="mr-4 text-gray-500">
-                    Checkout
-                  </button></RouterLink
-                >
-              </span>
-              <span>
-                <i class="fas fa-trash-alt mr-1"> </i>
-                <button @click="removeItem(book.id)" class="text-gray-500">
-                  Delete
-                </button>
-              </span>
+                <!-- ACTION -->
+                <div class="wrap mt-3">
+                  <span>
+                    <i class="fas fa-shopping-cart mr-1 text-black"> </i>
+                    <RouterLink
+                      :to="{ name: 'Checkout', params: { id: book.id } }"
+                      ><button class="mr-4 text-gray-500">
+                        Checkout
+                      </button></RouterLink
+                    >
+                  </span>
+                  <span>
+                    <i class="fas fa-trash-alt mr-1 text-black"> </i>
+                    <button @click="removeItem(book.id)" class="text-gray-500">
+                      Delete
+                    </button>
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
       </div>
-    </div>
-
-    <!-- Tampilkan Total Belanjaan dan Ongkir -->
-    <div class="flex justify-end mt-6">
-      <Card class="md:w-1/3">
-        <template #title>
-          <h1 class="text-lg">Ringkasan Belanja</h1>
-        </template>
-
-        <template #content>
-          <div class="flex flex-col gap-2 mb-6">
-            <div class="flex justify-between">
-              <p class="text-base">Total Harga</p>
-              <p class="text-base">
-                Rp. {{ inputCurrency(calculateTotalHarga) }}
-              </p>
-            </div>
-            <div class="flex justify-between">
-              <p class="text-base text-surface-500">Biaya Pengiriman</p>
-              <p class="text-base">Rp. 10.000</p>
-            </div>
-          </div>
-          <hr />
-        </template>
-
-        <template #footer v-for="book in cart">
-          <div class="flex justify-between gap-3">
-            <h1 class="text-lg">Total Belanja</h1>
-            <h1 class="text-lg">Rp. {{ inputCurrency(calculateTotal) }}</h1>
-          </div>
-          <div class="flex justify-center mt-4">
-            <RouterLink :to="{ name: 'Checkout', params: { id: book.id } }">
-              <Button
-                label="Lanjut Pembayaran"
-                class="w-full"
-                @click="checkoutSelected"
-                :disabled="checkedItems.length === 0"
-              />
-            </RouterLink>
-          </div>
-        </template>
-      </Card>
     </div>
   </div>
   <Toast />

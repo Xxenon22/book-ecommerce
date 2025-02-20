@@ -2,64 +2,80 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { supabase } from "../supabase/index";
-import { Toast, useToast } from "primevue";
 
-const toast = useToast();
+const router = useRouter();
+const displayName = ref("");
 const email = ref("");
 const password = ref("");
-const displayName = ref("");
 const errorMessage = ref("");
-const router = useRouter();
 
 const register = async () => {
-  try {
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
-      {
-        email: email.value,
-        password: password.value,
-        options: {
-          data: {
-            display_name: displayName.value,
-          },
-        },
-      }
-    );
+  errorMessage.value = "";
 
-    if (signUpError) {
-      errorMessage.value = signUpError.message;
-      return;
+  if (!displayName.value || !email.value || !password.value) {
+    errorMessage.value = "Semua kolom harus diisi!";
+    return;
+  }
+
+  try {
+    // Cek apakah email sudah digunakan
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email.value)
+      .single();
+
+    if (existingUser) {
+      throw new Error("Email sudah terdaftar!");
     }
 
-    const { error: insertError } = await supabase.from("user").insert([
+    // Ambil role default (user)
+    const { data: roleData, error: roleError } = await supabase
+      .from("roles")
+      .select("id")
+      .eq("name", "user")
+      .single();
+
+    if (roleError) throw roleError;
+
+    // Registrasi pengguna ke Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email: email.value,
+      password: password.value,
+      options: {
+        data: {
+          username: displayName.value,
+          role_id: roleData.id,
+        },
+      },
+    });
+
+    if (error) throw error;
+
+    // Simpan user ke database users
+    const { error: userError } = await supabase.from("users").insert([
       {
-        user_id: signUpData.user.id,
-        name: displayName.value,
+        id: data.user.id,
+        username: displayName.value,
         email: email.value,
-        role_id: 1,
+        role_id: roleData.id,
       },
     ]);
 
-    if (insertError) {
-      errorMessage.value = insertError.message;
-      toast.add({
-        severity: "error",
-        summary: "Peringatan",
-        detail: "User  gagal ditambahkan!",
-        life: 5000,
-      });
-      return;
-    }
+    if (userError) throw userError;
 
-    toast.add({
-      severity: "success",
-      summary: "Berhasil",
-      detail: "User  berhasil ditambahkan",
-      life: 5000,
+    // Login otomatis setelah register
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value,
     });
-    alert("Akun sudah terdaftar, silahkan check inbox email mu!");
+
+    if (loginError) throw loginError;
+
+    // Redirect ke dashboard
+    router.push("/");
   } catch (err) {
-    errorMessage.value = "An unexpected error occurred. Please try again.";
-    console.error(err);
+    errorMessage.value = err.message;
   }
 };
 </script>
@@ -70,17 +86,21 @@ const register = async () => {
       class="bg-white p-8 rounded-lg shadow-lg flex flex-col md:flex-row items-center"
     >
       <div class="md:w-1/2">
-        <div class="flex flex-row items-center">
-          <h1 class="text-3xl font-bold mb-2 mr-3">Welcome to</h1>
+        <div class="flex flex-col items-center">
+          <h1 class="text-3xl font-bold mb-2 mr-3 text-black">
+            Selamat datang di
+          </h1>
           <img src="../assets/Logo.png" alt="logo" width="150px" />
-        </div>
 
-        <h2 class="text-xl font-semibold mb-4">Create Your Account!!</h2>
+          <h2 class="text-xl font-semibold mb-4 text-black">
+            Create Your Account!!
+          </h2>
+        </div>
         <form @submit.prevent="register" class="space-y-4">
           <div class="relative">
             <input
               v-model="displayName"
-              class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none"
+              class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none text-[var(--text-primary)]"
               placeholder="Username..."
               type="text"
             />
@@ -92,7 +112,7 @@ const register = async () => {
           <div class="relative">
             <input
               v-model="email"
-              class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none"
+              class="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none text-[var(--text-primary)]"
               placeholder="Email..."
               type="email"
             />
@@ -125,10 +145,10 @@ const register = async () => {
 
         <p v-if="message" class="mt-4 text-red-500">{{ message }}</p>
 
-        <p class="mt-4 text-center">
+        <p class="mt-4 text-center text-black">
           Sudah punya akun ?
           <RouterLink to="/login" class="text-blue-600" href="#"
-            >Login disini</RouterLink
+            >Langsung masuk aja!</RouterLink
           >
         </p>
       </div>
@@ -143,7 +163,6 @@ const register = async () => {
         />
       </div>
     </div>
-    <Toast />
   </body>
 </template>
 

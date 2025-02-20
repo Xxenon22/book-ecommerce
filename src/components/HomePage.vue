@@ -1,7 +1,11 @@
 <script setup>
 import Card from "./items/Card.vue";
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue";
+
 import { ref, onMounted, watch } from "vue";
 import { supabase } from "../supabase/index";
+import { router } from "../views/router";
 
 const BookList = ref([]);
 const categories = ref([]);
@@ -11,8 +15,10 @@ const filteredBookList = ref([]);
 const originalBookList = ref([]);
 const searchQuery = ref("");
 const cartCount = ref(0);
+const confirm = useConfirm();
 // **State untuk menyimpan cart**
 const cart = ref([]);
+const toast = useToast();
 
 // Fetch kategori dari Supabase
 const fetchCategories = async () => {
@@ -103,22 +109,47 @@ const initializeData = async () => {
 };
 onMounted(initializeData);
 
-// **Mengambil jumlah item di cart**
-watch(cart, () => {
-  cartCount.value = cart.value.length;
-});
-
-// **Ambil data cart dari localStorage saat pertama kali aplikasi dijalankan**
-const loadCart = () => {
-  const storedCart = localStorage.getItem("cart");
-  if (storedCart) {
-    cart.value = JSON.parse(storedCart);
-  }
+// **Ambil data cart dari Supabase**
+const loadCart = async () => {
+  const { data, error } = await supabase.from("cart").select("*");
+  if (error) console.error("Error loading cart:", error.message);
+  else cart.value = data;
 };
+
+// **Simpan cart ke Supabase**
+const saveCart = async () => {
+  await supabase.from("cart").upsert(cart.value);
+};
+
+watch(cart, saveCart, { deep: true });
 
 onMounted(() => {
   loadCart();
 });
+
+const requireConfirmation = (event) => {
+  confirm.require({
+    target: event.currentTarget,
+    group: "headless",
+    message: "Kamu ingin Keluar?",
+    accept: async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Logout gagal:", error.message);
+        return;
+      }
+      router.push("/login");
+    },
+    reject: () => {
+      toast.add({
+        severity: "error",
+        summary: "Rejected",
+        detail: "Logout dibatalkan",
+        life: 3000,
+      });
+    },
+  });
+};
 </script>
 
 <template>
@@ -133,7 +164,7 @@ onMounted(() => {
             option-value="id"
             option-label="name"
             placeholder="Genre"
-            class="w-full md:w-56"
+            class="p-select w-full md:w-56 bg-[var(--bg-primary)]"
           />
         </li>
       </ul>
@@ -148,17 +179,62 @@ onMounted(() => {
         />
         <Button
           icon="pi pi-search"
+          class="custom-button bg-[var(--components-primary)]"
           style="border-radius: 0 10px 10px 0"
           @click="handleSearch"
         />
       </div>
 
-      <div class="flex">
-        <RouterLink to="/suka">
-          <OverlayBadge :value="cart.length" severity="danger">
-            <i class="pi pi-heart" style="font-size: 2rem" />
-          </OverlayBadge>
-        </RouterLink>
+      <div class="flex gap-5">
+        <span>
+          <RouterLink to="/suka">
+            <OverlayBadge :value="cart.length" severity="danger">
+              <Button
+                icon="pi pi-heart"
+                rounded
+                variant="text"
+                raised
+                class="custom-button-icon"
+              ></Button>
+            </OverlayBadge>
+          </RouterLink>
+        </span>
+
+        <span>
+          <Button
+            @click="requireConfirmation($event)"
+            icon="pi pi-user"
+            rounded
+            variant="text"
+            raised
+            class="custom-button-icon"
+          ></Button>
+        </span>
+      </div>
+
+      <div class="absolute">
+        <ConfirmPopup group="headless">
+          <template #container="{ message, acceptCallback, rejectCallback }">
+            <div class="rounded p-4">
+              <span>{{ message.message }}</span>
+              <div class="flex items-center gap-2 mt-4">
+                <Button
+                  label="Keluar"
+                  @click="acceptCallback"
+                  size="small"
+                ></Button>
+                <Button
+                  label="Batalkan"
+                  outlined
+                  @click="rejectCallback"
+                  severity="secondary"
+                  size="small"
+                  text
+                ></Button>
+              </div>
+            </div>
+          </template>
+        </ConfirmPopup>
       </div>
     </div>
   </section>

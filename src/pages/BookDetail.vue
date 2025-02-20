@@ -42,37 +42,43 @@ const formatDate = (created_at) => {
   }).format(new Date(created_at));
 };
 
-// **Mengambil jumlah item di cart**
-watch(cart, () => {
-  cartCount.value = cart.value.length;
-});
-
-// **Ambil data cart dari localStorage saat pertama kali aplikasi dijalankan**
-const loadCart = () => {
-  const storedCart = localStorage.getItem("cart");
-  if (storedCart) {
-    cart.value = JSON.parse(storedCart);
-  }
+// **Ambil data cart dari Supabase**
+const loadCart = async () => {
+  const { data, error } = await supabase.from("cart").select("*");
+  if (error) console.error("Error loading cart:", error.message);
+  else cart.value = data;
 };
+
+// **Simpan cart ke Supabase**
+const saveCart = async () => {
+  await supabase.from("cart").upsert(cart.value);
+};
+
+watch(cart, saveCart, { deep: true });
 
 onMounted(() => {
   loadCart();
 });
 
-// **Simpan cart ke localStorage setiap ada perubahan**
-watch(
-  cart,
-  (newCart) => {
-    localStorage.setItem("cart", JSON.stringify(newCart));
-  },
-  { deep: true }
-);
+const addToCart = async (book) => {
+  const newTotalPrice = book.price * (book.quantity || 1);
+  const { data, error } = await supabase.from("cart").insert([
+    {
+      quantity: book.quantity || 1,
+      id: book.id,
+      title: book.title,
+      price: book.price,
+      author: book.author,
+      image_url: book.image_url,
+      kategori_id: book.kategori_id.name,
+      total_price: newTotalPrice, // Set total_price saat item pertama kali ditambahkan
+    },
+  ]);
 
-// **Fungsi untuk menambah buku ke cart**
-const addToCart = (Book) => {
-  const exists = cart.value.find((item) => item.id === Book.id);
-  if (!exists) {
-    cart.value.push(Book);
+  if (error) {
+    console.error("Error adding to cart:", error);
+  } else {
+    await loadCart(); // Memuat ulang data cart setelah item ditambahkan
   }
 };
 
@@ -80,25 +86,6 @@ const cartCount = ref(0);
 watch(cart, () => {
   cartCount.value = cart.value.length;
 });
-
-// // Simpan cart ke localStorage (kalau di reload total harganya kesimpan nya )
-// const saveCart = () => {
-//   localStorage.setItem("cart", JSON.stringify(cart.value));
-// };
-
-// // Tambah quantity buku
-// const increaseQuantity = (Book) => {
-//   Book.quantity += 1;
-//   saveCart();
-// };
-
-// // Kurangi quantity buku (minimal 1)
-// const decreaseQuantity = (Book) => {
-//   if (Book.quantity > 1) {
-//     Book.quantity -= 1;
-//     saveCart();
-//   }
-// };
 </script>
 
 <template>
@@ -112,7 +99,13 @@ watch(cart, () => {
     <div class="">
       <RouterLink to="/suka">
         <OverlayBadge :value="cart.length" severity="danger">
-          <i class="pi pi-heart" style="font-size: 2rem" />
+          <Button
+            icon="pi pi-heart"
+            rounded
+            variant="text"
+            raised
+            class="custom-button-icon"
+          ></Button>
         </OverlayBadge>
       </RouterLink>
     </div>
@@ -134,7 +127,7 @@ watch(cart, () => {
           </p>
           <h1 class="text-4xl font-black text-surface-600">{{ Book.title }}</h1>
 
-          <h1 class="font-bold mt-5">
+          <h1 class="font-black text-black mt-5">
             {{ formatCurrency(Book.price) }}
           </h1>
 
@@ -152,13 +145,13 @@ watch(cart, () => {
                   "
                   @click="addToCart(Book)"
                   label="Suka"
-                  class="p-button-rounded p-button-text"
+                  class="custom-button-icon p-button-rounded p-button-text"
                 />
               </span>
             </div>
 
             <div class="mt-5">
-              <Tabs value="0">
+              <Tabs value="0" class="bg-[var(--bg-primary)]">
                 <TabList>
                   <Tab value="0">Deskripsi</Tab>
                   <Tab value="1">Detail</Tab>
@@ -173,35 +166,41 @@ watch(cart, () => {
                     <div class="flex flex-row">
                       <div class="md:w-1/2 space-y-4">
                         <div class="penerbit">
-                          <p class="m-0 text-surface-300">Penerbit</p>
-                          <h1 class="text-lg">{{ Book.penerbit }}</h1>
+                          <p class="m-0 text-surface-600">Penerbit</p>
+                          <h1 class="text-lg text-black">
+                            {{ Book.penerbit }}
+                          </h1>
                         </div>
 
                         <div class="bahasa">
-                          <p class="m-0 text-surface-300">Bahasa</p>
-                          <h1 class="text-lg">{{ Book.bahasa }}</h1>
+                          <p class="m-0 text-surface-600">Bahasa</p>
+                          <h1 class="text-lg text-black">{{ Book.bahasa }}</h1>
                         </div>
 
                         <div class="halaman">
-                          <p class="m-0 text-surface-300">Halaman</p>
-                          <h1 class="text-lg">{{ Book.halaman }}</h1>
+                          <p class="m-0 text-surface-600">Halaman</p>
+                          <h1 class="text-lg text-black">{{ Book.halaman }}</h1>
                         </div>
                       </div>
                       <div class="md:w-1/2 space-y-4">
                         <div class="tanggal_terbit">
-                          <p class="m-0 text-surface-300">Tanggal Terbit</p>
-                          <h1 class="text-lg">
+                          <p class="m-0 text-surface-600">Tanggal Terbit</p>
+                          <h1 class="text-lg text-black">
                             {{ formatDate(Book.created_at) }}
                           </h1>
                         </div>
 
                         <div class="lebar_buku">
-                          <p class="m-0 text-surface-300">Lebar Buku</p>
-                          <h1 class="text-lg">{{ Book.lebar_buku }}</h1>
+                          <p class="m-0 text-surface-600">Lebar Buku</p>
+                          <h1 class="text-lg text-black">
+                            {{ Book.lebar_buku }}
+                          </h1>
                         </div>
                         <div class="panjang_buku">
-                          <p class="m-0 text-surface-300">Panjang Buku</p>
-                          <h1 class="text-lg">{{ Book.panjang_buku }}</h1>
+                          <p class="m-0 text-surface-600">Panjang Buku</p>
+                          <h1 class="text-lg text-black">
+                            {{ Book.panjang_buku }}
+                          </h1>
                         </div>
                       </div>
                     </div>
