@@ -5,7 +5,7 @@ import { useToast } from "primevue/usetoast";
 import TableBuku from "../../../components/items/admin/TableBuku.vue";
 import TableKategori from "../../../components/items/admin/TableKategori.vue";
 import { supabase } from "../../../supabase/index";
-import { checkAuth } from "../../../auth";
+// import { checkAuth } from "../../../auth";
 
 const selectedCard = ref("home");
 const toast = useToast();
@@ -229,7 +229,7 @@ const selectCategory = async () => {
 // Fetch data kategori saat komponen dimuat
 onMounted(() => {
   selectCategory();
-  checkAuth();
+  // checkAuth();
 });
 </script>
 

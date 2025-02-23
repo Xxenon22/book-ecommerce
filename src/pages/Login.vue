@@ -1,4 +1,4 @@
-<script setup>
+<!-- <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { supabase } from "../supabase/index";
@@ -6,41 +6,105 @@ import { supabase } from "../supabase/index";
 const router = useRouter();
 const email = ref("");
 const password = ref("");
+const displayName = ref("");
 const errorMessage = ref("");
 
-const login = async () => {
-  errorMessage.value = "";
-
-  if (!email.value || !password.value) {
-    errorMessage.value = "Email dan password harus diisi!";
-    return;
-  }
-
+const handleLogin = async () => {
   try {
-    // Proses login ke Supabase Auth
+    errorMessage.value = "";
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,
     });
 
-    if (error) throw error;
+    if (error) {
+      // Show toast notification for invalid email/password
+      toast.add({
+        severity: "error",
+        summary: "Error",
+        detail: "Email atau password salah",
+        life: 3000,
+      });
+      return;
+    }
 
-    // Ambil data user dari tabel users berdasarkan id Supabase Auth
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id, username, role_id")
-      .eq("id", data.user.id)
-      .single();
+    const session = await supabase.auth.getSession();
 
-    if (userError) throw userError;
-
-    // Simpan data user di localStorage atau Vuex/Pinia jika diperlukan
-    localStorage.setItem("user", JSON.stringify(userData));
-
-    // Redirect ke dashboard
-    router.push("/");
+    if (session?.data?.session) {
+      router.push("/");
+    } else {
+      errorMessage.value = "Failed to establish a session.";
+    }
   } catch (err) {
-    errorMessage.value = err.message;
+    errorMessage.value = "An unexpected error occurred. Please try again.";
+    console.error(err);
+  }
+};
+</script> -->
+
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { supabase } from "../supabase/index";
+import { useToast } from "primevue";
+
+const toast = useToast([]);
+const router = useRouter();
+const email = ref("");
+const password = ref("");
+const errorMessage = ref("");
+
+const handleLogin = async () => {
+  try {
+    errorMessage.value = "";
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value,
+    });
+
+    if (error) {
+      // Show toast notification for invalid email/password
+      toast.add({
+        severity: "error",
+        summary: "Error",
+        detail: "Email atau password salah",
+        life: 3000,
+      });
+      return;
+    }
+
+    // Ambil session user setelah login
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    if (sessionData?.session) {
+      const userId = sessionData.session.user.id;
+
+      // Ambil role_id dari tabel users berdasarkan userId
+      const { data: user, error: userError } = await supabase
+        .from("users")
+        .select("role_id")
+        .eq("id", userId)
+        .single();
+
+      if (userError || !user) {
+        errorMessage.value = "Gagal mengambil data pengguna.";
+        return;
+      }
+
+      // Redirect berdasarkan role_id
+      if (user.role_id === 2) {
+        router.push("/tambah-buku");
+      } else {
+        router.push("/");
+      }
+    } else {
+      errorMessage.value = "Failed to establish a session.";
+    }
+  } catch (err) {
+    errorMessage.value = "An unexpected error occurred. Please try again.";
+    console.error(err);
   }
 };
 </script>
@@ -52,7 +116,7 @@ const login = async () => {
       <div class="flex flex-row items-center justify-center">
         <img src="../assets/Logo.png" alt="logo" width="150px" />
       </div>
-      <form @submit.prevent="login" class="space-y-8">
+      <form @submit.prevent="handleLogin" class="space-y-8">
         <div class="relative">
           <input
             id="email"

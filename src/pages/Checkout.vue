@@ -1,11 +1,15 @@
 <script setup>
 import { onMounted, ref, computed, watch } from "vue";
-import { Card, FloatLabel, Textarea } from "primevue";
+import { Card, FloatLabel, Textarea, Toast, useToast } from "primevue";
 import { useRoute } from "vue-router";
 import { inputCurrency } from "../supabase/inputCurrency";
 import { supabase } from "../supabase/index";
 import { formatCurrency } from "../supabase/currency";
+import { loadStripe } from "@stripe/stripe-js";
 
+// var stripe = Stripe(
+//   "pk_test_51QuVrYIGpUkp6BsLQlYYeoWlF4IjE2Rn0t5uH9ZQR0awhDVXhEM9ccmdh8T16uctZufyfNuHNIPWS9buTZsY4Ade00sX1NLzgD"
+// );
 const Book = ref([]); // Initializing Book to null until data is fetched
 const isLoading = ref(true);
 const route = useRoute([]);
@@ -18,6 +22,14 @@ const phoneNumber = ref("");
 const userAddress = ref("");
 const isAddressSaved = ref(false);
 const isPaymentDisabled = computed(() => !isAddressSaved.value);
+const label = ref({
+  user_id: "",
+  recipient_name: "",
+  phone_number: "",
+  address: "",
+  label_id: "",
+});
+const toast = useToast([]);
 
 // Ambil cart dari Supabase
 const loadCart = async () => {
@@ -52,10 +64,24 @@ const totalHarga = computed(() => {
 // Tambahkan biaya ongkir (misalnya Rp 10.000)
 const totalBayar = computed(() => totalHarga.value + 10000);
 
-const processCheckout = () => {
-  // Logika untuk memproses checkout
-  console.log("Checkout dengan buku:", selectedBooks.value);
-  alert("Checkout berhasil!");
+const processCheckout = async () => {
+  const stripe = await loadStripe(
+    "pk_test_51QuVrYIGpUkp6BsLQlYYeoWlF4IjE2Rn0t5uH9ZQR0awhDVXhEM9ccmdh8T16uctZufyfNuHNIPWS9buTZsY4Ade00sX1NLzgD"
+  );
+  const { error } = await stripe.redirectToCheckout({
+    lineItems: [
+      {
+        price: "price_1QuWj7IGpUkp6BsLBDSWKnPg",
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    successUrl: "http://localhost:5173/berhasil",
+    cancelUrl: "http://localhost:5173/cancel",
+  });
+  if (error) {
+    console.error("sripe checkout error:", error);
+  }
 };
 
 // Ambil Buku dari cart berdasarkan ID di route
@@ -89,6 +115,37 @@ const fetchBook = async () => {
 };
 
 onMounted(fetchBook);
+// Ambil Buku dari Detail buku berdasarkan ID di route
+const fetchBookFromDetail = async () => {
+  if (!route.params.id) {
+    console.error("Missing book ID in route parameters");
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("books")
+      .select(
+        `id, title, author, image_url, price, kategori_id(id, name), quantity`
+      )
+      .eq("id", route.params.id)
+      .single();
+
+    if (error) throw error;
+
+    Book.value = {
+      ...data,
+      quantity: data.quantity || 1,
+      total_price: data.total_price || data.price * (data.quantity || 1),
+    };
+  } catch (error) {
+    console.error("Gagal mengambil buku!:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(fetchBookFromDetail);
 
 const updateQuantity = async (newQuantity) => {
   if (!Book.value || newQuantity < 1) return;
@@ -145,8 +202,8 @@ const loadAddress = async () => {
     .from("addresses")
     .select("*")
     .eq("user_id", user?.data?.user?.id)
+    .limit(1)
     .single();
-
   if (error) {
     console.error("Error fetching address:", error);
     return;
@@ -155,31 +212,118 @@ const loadAddress = async () => {
   address.value = data;
   isAddressSaved.value = !!data;
 };
+onMounted(loadAddress);
 
-// Simpan alamat ke Supabase
 const saveAddress = async () => {
   const user = await supabase.auth.getUser();
-  const { data, error } = await supabase.from("addresses").upsert([
-    {
-      user_id: user?.data?.user?.id,
-      recipient_name: recipientName.value,
-      phone_number: phoneNumber.value,
-      address: userAddress.value,
-    },
-  ]);
+
+  if (!user.data.user) {
+    console.error("User tidak ditemukan.");
+    return;
+  }
+
+  const newAddress = {
+    user_id: user.data.user.id,
+    recipient_name: recipientName.value,
+    phone_number: phoneNumber.value,
+    address: userAddress.value,
+    label_id: address.value.label_id, // Pastikan label sudah dipilih
+  };
+
+  const { data, error } = await supabase.from("addresses").insert([newAddress]);
 
   if (error) {
     console.error("Error saving address:", error);
     return;
   }
 
-  address.value = data[0];
+  address.value = newAddress; // Simpan alamat baru ke state
   isAddressSaved.value = true;
   visible.value = false;
-  alert("Alamat berhasil disimpan!");
+
+  toast.add({
+    severity: "success",
+    summary: "Berhasil!",
+    detail: "Berhasil menambahkan alamat!",
+  });
 };
 
-onMounted(loadAddress);
+const fetchlabel = async () => {
+  try {
+    const { data, error } = await supabase.from("label").select("id, label");
+    if (error) throw error;
+    label.value = data;
+    console.log("Data label:", label.value); // Debugging
+  } catch (error) {
+    console.error("Gagal mengambil label! :", error);
+  }
+};
+
+onMounted(fetchlabel);
+
+const updateAddress = async () => {
+  const user = await supabase.auth.getUser();
+
+  if (!user.data.user) {
+    console.error("User tidak ditemukan.");
+    return;
+  }
+
+  const updatedAddress = {
+    recipient_name: recipientName.value,
+    phone_number: phoneNumber.value,
+    address: userAddress.value,
+    label_id: address.value.label_id, // Pastikan label sudah dipilih
+  };
+
+  const { error } = await supabase
+    .from("addresses")
+    .update(updatedAddress)
+    .eq("user_id", user.data.user.id);
+
+  if (error) {
+    console.error("Error updating address:", error);
+    return;
+  }
+
+  address.value = { ...address.value, ...updatedAddress };
+  isAddressSaved.value = true;
+  visible.value = false;
+
+  toast.add({
+    severity: "success",
+    summary: "Berhasil!",
+    detail: "Alamat berhasil diperbarui!",
+  });
+};
+
+const deleteAddress = async () => {
+  const user = await supabase.auth.getUser();
+
+  if (!user.data.user) {
+    console.error("User tidak ditemukan.");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("addresses")
+    .delete()
+    .eq("user_id", user.data.user.id);
+
+  if (error) {
+    console.error("Error deleting address:", error);
+    return;
+  }
+
+  address.value = null;
+  isAddressSaved.value = false;
+
+  toast.add({
+    severity: "info",
+    summary: "Alamat Dihapus",
+    detail: "Alamat telah dihapus!",
+  });
+};
 </script>
 
 <template>
@@ -193,33 +337,68 @@ onMounted(loadAddress);
     </div>
 
     <div class="">
-      <Card class="md:w-3/5">
+      <Card class="md:w-3/5 bg-[var(--bg-primary)]">
         <template #title>
-          <h1 class="text-lg">
+          <h1 class="text-lg text-orange-500">
             <i class="pi pi-map-marker mr-2"></i>Alamat Pengiriman
           </h1>
-          <p v-if="!isAddressSaved" class="text-sm m-5">
-            Belum ada alamat yang terdaftar!
-          </p>
-
-          <p v-else class="text-sm m-5">
-            {{ address.recipient_name }} - {{ address.phone_number }} <br />
-            {{ address.address }}
-          </p>
         </template>
 
         <template #content>
-          <Button
-            v-if="!isAddressSaved"
-            label="Buat Alamat"
-            @click="visible = true"
-          />
+          <p v-if="!isAddressSaved" class="text-sm m-5 text-black">
+            Belum ada alamat yang terdaftar!
+          </p>
 
-          <Button v-else label="Ubah Alamat" @click="visible = true" />
+          <div v-else class="text-sm m-5 text-surface-500">
+            <div class="">
+              <Tag
+                severity="warn"
+                :value="
+                  address.label_id
+                    ? label.find((l) => l.id === address.label_id)?.label
+                    : 'Tidak ada label'
+                "
+              />
+            </div>
+            <div class="mt-4">
+              {{ address.recipient_name }} | {{ address.phone_number }} <br />
+              {{ address.address }}
+            </div>
+          </div>
+          <div class="flex gap-5">
+            <Button
+              v-if="!isAddressSaved"
+              label="Buat Alamat"
+              @click="visible = true"
+            />
+
+            <Button
+              v-else
+              label="Ubah Alamat"
+              severity="warn"
+              outlined
+              @click="visible = true"
+            ></Button>
+
+            <Button
+              v-if="!isAddressSaved"
+              label="Simpan Alamat"
+              @click="saveAddress"
+            />
+
+            <Button
+              v-if="isAddressSaved"
+              label="Hapus Alamat"
+              severity="danger"
+              outlined
+              @click="deleteAddress"
+            />
+          </div>
 
           <Dialog
             v-model:visible="visible"
             modal
+            class="bg-[var(--bg-primary)]"
             header="Detail Alamat"
             :style="{ width: '25rem' }"
           >
@@ -239,6 +418,16 @@ onMounted(loadAddress);
                 <label for="phone" class="font-semibold w-full">No. Telp</label>
               </FloatLabel>
 
+              <div class="flex flex-col gap-1">
+                <Select
+                  v-model="address.label_id"
+                  :options="label"
+                  optionLabel="label"
+                  optionValue="id"
+                  placeholder="Pilih Label"
+                />
+              </div>
+
               <FloatLabel variant="in">
                 <Textarea id="address" class="w-full" v-model="userAddress" />
                 <label for="address" class="font-semibold w-full"
@@ -254,9 +443,15 @@ onMounted(loadAddress);
       </Card>
 
       <div class="flex flex-row justify-end">
-        <Card class="md:w-1/3 ml-3" style="margin-top: -200px">
+        <Card
+          class="md:w-1/3 ml-3 bg-[var(--bg-primary)]"
+          style="margin-top: -200px"
+        >
           <template #title>
-            <h1 class="text-lg">Ringkasan Belanja</h1>
+            <h1 class="text-lg mr-2 text-orange-500">
+              <i class="pi pi-shopping-bag"></i>
+              Ringkasan Belanja
+            </h1>
           </template>
 
           <template #content>
@@ -264,14 +459,14 @@ onMounted(loadAddress);
               <p class="text-base text-surface-500">
                 Total Harga ( {{ Book.quantity }} Buku )
               </p>
-              <p class="text-base">
+              <p class="text-base text-orange-500">
                 {{ formatCurrency(Book?.total_price || 0) }}
               </p>
             </div>
 
             <div class="flex flex-row justify-between">
               <p class="text-base text-surface-500">Biaya Pengiriman</p>
-              <p class="text-base">Rp. 10.000,00</p>
+              <p class="text-base text-orange-500">Rp. 10.000,00</p>
             </div>
 
             <hr />
@@ -280,15 +475,18 @@ onMounted(loadAddress);
           <template #footer>
             <div class="flex flex-col gap-4">
               <div class="flex flex-row justify-between gap-3">
-                <h1 class="text-lg">Total Belanja</h1>
-                <h1 class="text-lg">{{ inputCurrency(calculateTotal) }}</h1>
+                <h1 class="text-lg text-surface-500">Total Belanja</h1>
+                <h1 class="text-lg text-orange-500">
+                  {{ inputCurrency(calculateTotal) }}
+                </h1>
               </div>
 
               <div class="flex justify-center">
                 <Button
-                  label="Lanjut Pembayaran"
-                  class="w-full"
+                  label="Checkout"
                   :disabled="isPaymentDisabled"
+                  @click="processCheckout"
+                  class="w-full mt-4"
                 />
               </div>
             </div>
@@ -298,9 +496,9 @@ onMounted(loadAddress);
         <!-- Buku Pesanan  -->
       </div>
 
-      <Card class="md:w-3/5">
+      <Card class="md:w-3/5 bg-[var(--bg-primary)]">
         <template #title>
-          <h1 class="text-lg bg-(var[--card-bg]) mb-3">Pesanan</h1>
+          <h1 class="text-lg mb-3 text-orange-500">Pesanan</h1>
           <hr />
         </template>
 
@@ -310,42 +508,44 @@ onMounted(loadAddress);
               <img :src="Book.image_url" :alt="Book.title" width="100" />
               <div class="m-5">
                 <p class="text-sm text-surface-300">
-                  {{ Book.kategori_id }}
+                  {{ Book?.kategori_id?.name }}
                 </p>
                 <h1 class="text-lg text-surface-400">{{ Book.title }}</h1>
-                <h1 class="text-base">{{ formatCurrency(Book.price) }}</h1>
+                <h1 class="text-base text-orange-500">
+                  {{ formatCurrency(Book.price) }}
+                </h1>
               </div>
             </div>
 
             <div class="md:w-1/2 space-x-8 flex items-center justify-center">
               <Button
                 icon="pi pi-minus"
-                severity="success"
+                severity="warn"
                 rounded
                 variant="outlined"
                 @click="updateQuantity(Book.quantity - 1)"
               />
 
-              <span>{{ Book?.quantity || 1 }}</span>
+              <span class="text-surface-500">{{ Book?.quantity || 1 }}</span>
               <Button
                 icon="pi pi-plus"
-                severity="success"
+                severity="warn"
                 rounded
                 variant="outlined"
                 @click="updateQuantity(Book.quantity + 1)"
               />
             </div>
           </div>
-
-          <div class=""></div>
         </template>
 
         <template #footer>
           <div class="flex flex-row justify-between">
-            <h1 class="text-base text-gray-400">Total Pesanan</h1>
-            <p class="text-xs">{{ Book.quantity }} Buku</p>
+            <h1 class="text-base text-orange-500">Total Pesanan</h1>
+            <p class="text-xs text-surface-500">{{ Book.quantity }} Buku</p>
 
-            <p>{{ formatCurrency(Book.total_price) }}</p>
+            <p class="text-orange-500">
+              {{ formatCurrency(Book.total_price) }}
+            </p>
           </div>
         </template>
       </Card>

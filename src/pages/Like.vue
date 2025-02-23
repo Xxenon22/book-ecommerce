@@ -183,7 +183,7 @@ const checkoutSelected = () => {
       <h2 class="text-3xl font-bold text-orange-400">Suka</h2>
     </div>
 
-    <div v-if="cart.length === 0" class="text-center">
+    <div v-if="cart.length === 0" class="text-center text-black">
       <p>Belum Ada yang disukai !</p>
     </div>
 
@@ -240,7 +240,7 @@ const checkoutSelected = () => {
                   <div class="mb-5">
                     <p class="text-gray-500">Rp.</p>
                     <h1
-                      class="text-3xl font-bold ml-7 text-black"
+                      class="text-3xl font-bold ml-7 text-orange-500"
                       mode="decimal"
                     >
                       {{ inputCurrency(book.price) }}
@@ -249,7 +249,7 @@ const checkoutSelected = () => {
                   <div class="flex items-center mt-2 gap-5">
                     <Button
                       icon="pi pi-minus"
-                      severity="success"
+                      severity="warn"
                       rounded
                       variant="outlined"
                       @click="
@@ -261,7 +261,7 @@ const checkoutSelected = () => {
                     <span class="text-black">{{ book.quantity }}</span>
                     <Button
                       icon="pi pi-plus"
-                      severity="success"
+                      severity="warn"
                       rounded
                       variant="outlined"
                       @click="updateQuantity(book, book.quantity + 1)"
@@ -273,7 +273,7 @@ const checkoutSelected = () => {
                 <div class="">
                   <span class="font-black text-lg text-black">Total : </span>
                   <span class="text-gray-500">Rp.</span>
-                  <span class="text-4xl ml-5 font-extrabold text-black">
+                  <span class="text-4xl ml-5 font-extrabold text-orange-500">
                     {{ inputCurrency(book.price * book.quantity) }}
                   </span>
                 </div>
@@ -292,7 +292,7 @@ const checkoutSelected = () => {
                   <span>
                     <i class="fas fa-trash-alt mr-1 text-black"> </i>
                     <button @click="removeItem(book.id)" class="text-gray-500">
-                      Delete
+                      Hapus
                     </button>
                   </span>
                 </div>

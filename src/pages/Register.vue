@@ -2,80 +2,119 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { supabase } from "../supabase/index";
+import { Toast, useToast } from "primevue";
 
+const toast = useToast();
 const router = useRouter();
 const displayName = ref("");
 const email = ref("");
 const password = ref("");
 const errorMessage = ref("");
 
-const register = async () => {
-  errorMessage.value = "";
-
-  if (!displayName.value || !email.value || !password.value) {
-    errorMessage.value = "Semua kolom harus diisi!";
-    return;
-  }
-
+const handleRegister = async () => {
   try {
-    // Cek apakah email sudah digunakan
-    const { data: existingUser } = await supabase
+    errorMessage.value = "";
+
+    const { data: existingUser, error: emailCheckError } = await supabase
       .from("users")
       .select("id")
       .eq("email", email.value)
       .single();
 
-    if (existingUser) {
-      throw new Error("Email sudah terdaftar!");
-    }
-
-    // Ambil role default (user)
-    const { data: roleData, error: roleError } = await supabase
-      .from("roles")
+    const { data: existingName, error: nameCheckError } = await supabase
+      .from("users")
       .select("id")
-      .eq("name", "user")
+      .eq("name", displayName.value)
       .single();
 
-    if (roleError) throw roleError;
+    if (emailCheckError && emailCheckError.code !== "PGRST116") {
+      errorMessage.value = emailCheckError.message;
+      return;
+    }
 
-    // Registrasi pengguna ke Supabase Auth
-    const { data, error } = await supabase.auth.signUp({
-      email: email.value,
-      password: password.value,
-      options: {
-        data: {
-          username: displayName.value,
-          role_id: roleData.id,
-        },
-      },
-    });
+    if (nameCheckError && nameCheckError.code !== "PGRST116") {
+      errorMessage.value = nameCheckError.message;
+      return;
+    }
 
-    if (error) throw error;
+    if (existingUser && existingName) {
+      toast.add({
+        severity: "error",
+        summary: "Peringatan",
+        detail: "Email dan nama sudah digunakan!",
+        life: 5000,
+      });
+      return;
+    }
 
-    // Simpan user ke database users
-    const { error: userError } = await supabase.from("users").insert([
+    if (existingUser) {
+      toast.add({
+        severity: "error",
+        summary: "Peringatan",
+        detail: "Email sudah digunakan!",
+        life: 5000,
+      });
+      return;
+    }
+
+    if (existingName) {
+      toast.add({
+        severity: "error",
+        summary: "Peringatan",
+        detail: "Nama sudah digunakan!",
+        life: 5000,
+      });
+      return;
+    }
+
+    // Proceed with user registration
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
       {
-        id: data.user.id,
-        username: displayName.value,
         email: email.value,
-        role_id: roleData.id,
+        password: password.value,
+        options: {
+          data: {
+            display_name: displayName.value,
+          },
+        },
+      }
+    );
+
+    if (signUpError) {
+      errorMessage.value = signUpError.message;
+      return;
+    }
+
+    const { error: insertError } = await supabase.from("users").insert([
+      {
+        id: signUpData.user.id,
+        name: displayName.value,
+        email: email.value,
+        role_id: 1,
       },
     ]);
 
-    if (userError) throw userError;
+    if (insertError) {
+      errorMessage.value = insertError.message;
+      toast.add({
+        severity: "error",
+        summary: "Peringatan",
+        detail: "User  gagal ditambahkan!",
+        life: 5000,
+      });
+      return;
+    }
 
-    // Login otomatis setelah register
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value,
+    toast.add({
+      severity: "success",
+      summary: "Berhasil",
+      detail: "User  berhasil ditambahkan",
+      life: 5000,
     });
-
-    if (loginError) throw loginError;
-
-    // Redirect ke dashboard
-    router.push("/");
+    alert("Akun sudah terdaftar, silahkan check inbox email mu!");
   } catch (err) {
-    errorMessage.value = err.message;
+    errorMessage.value = "An unexpected error occurred. Please try again.";
+    console.error(err);
   }
 };
 </script>
@@ -96,7 +135,7 @@ const register = async () => {
             Create Your Account!!
           </h2>
         </div>
-        <form @submit.prevent="register" class="space-y-4">
+        <form @submit.prevent="handleRegister" class="space-y-4">
           <div class="relative">
             <input
               v-model="displayName"

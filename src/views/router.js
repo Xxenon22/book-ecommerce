@@ -7,6 +7,9 @@ import AddBook from '../pages/admin/CRUD/AddBook.vue';
 import Cart from '../pages/Like.vue';
 import BookDetail from '../pages/BookDetail.vue';
 import Checkout from '../pages/Checkout.vue';
+import Berhasil from '../pages/berhasil.vue';
+import Cancel from '../pages/cancel.vue';
+
 
 const routes = [
     { path: '/', name: 'Home', component: HomePage, meta: { requiresAuth: true, } },
@@ -16,6 +19,8 @@ const routes = [
     { path: '/tambah-buku', name: 'TambahBuku', component: AddBook, meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/detail/:id', name: 'DetailBuku', component: BookDetail, props: true, meta: { requiresAuth: true, } },
     { path: '/checkout/:id', name: 'Checkout', component: Checkout, props: true, meta: { requiresAuth: true, } },
+    { path: '/berhasil', name: 'berhasil', component: Berhasil, props: true, meta: { requiresAuth: true, } },
+    { path: '/cancel', name: 'cancel', component: Cancel, props: true, meta: { requiresAuth: true, } },
 ]
 
 export const router = createRouter({
